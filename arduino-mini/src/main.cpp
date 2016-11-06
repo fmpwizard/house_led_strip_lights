@@ -261,7 +261,8 @@ void loop() {
     inSignal = digitalRead(inPin);
     rainbow(1);
   }
-  if (inSignal == 0 && lightsOn == true) {
+  if (inSignal == 0) {
     lightsOff();
   }
+  delay(2000);
 }
