@@ -11,11 +11,11 @@
 
 // Read pin from moteino
 int inPin = 9;   // pushbutton connected to digital pin 7
-int val = 0;     // variable to store the read value
+int inSignal = 0;     // variable to store the read value
 //int val = 1;     // variable to store the read value //Diego debug on uno
 //======================================
 
-boolean on = false; //Diego
+boolean lightsOn = false; //Diego
 
 //======================================
 
@@ -55,14 +55,14 @@ void lightsOff(){
     strip.setPixelColor(x, strip.Color(0, 0, 0));
   }
   strip.show();
-  on = false;
+  lightsOn = false;
   delay(2000);
 }
 
 void checkPinIn(uint16_t round) {
   if (round % 10 == 0) {
     uint8_t val = digitalRead(inPin);
-    if (val == 0 && on == true){
+    if (val == 0 && lightsOn == true){
     //if (false && on == true){ //Diego debug
       lightsOff();
       return;
@@ -72,8 +72,7 @@ void checkPinIn(uint16_t round) {
 
 // Fill the dots one after the other with a color from corners to the middle
 void colorWipe(uint32_t c, uint8_t wait) {
-  if (val == 0) {
-    on = false;
+  if (inSignal == 0) {
     return;
   }
   for(uint16_t s=0; s < (strip.numPixels()/2) + 1; s++) {
@@ -87,8 +86,7 @@ void colorWipe(uint32_t c, uint8_t wait) {
 
 // Fill the dots one after the other with a color from middle out
 void colorWipeInOut(uint32_t c, uint8_t wait) {
-  if (val == 0) {
-    on = false;
+  if (inSignal == 0) {
     return;
   }
   for(uint16_t s=strip.numPixels()/2; s >0 ; s--) {
@@ -118,8 +116,7 @@ uint32_t Wheel(byte WheelPos) {
 
 // Slightly different, this makes the rainbow equally distributed throughout
 void rainbowCycle(uint8_t wait) {
-  if (val == 0) {
-    on = false;
+  if (inSignal == 0) {
     return;
   }
   uint16_t i, j;
@@ -134,12 +131,9 @@ void rainbowCycle(uint8_t wait) {
   }
 }
 
-
-
 //Theatre-style crawling lights.
 void theaterChase(uint32_t c, uint16_t wait, uint8_t cycles) {
-  if (val == 0) {
-    on = false;
+  if (inSignal == 0) {
     return;
   }
   for (int j=0; j<cycles; j++) {  //do N cycles of chasing
@@ -160,8 +154,7 @@ void theaterChase(uint32_t c, uint16_t wait, uint8_t cycles) {
 
 //Theatre-style crawling lights with rainbow effect from corners to middle
 void theaterChaseRainbowMiddle(uint8_t wait) {
-  if (val == 0) {
-    on = false;
+  if (inSignal == 0) {
     return;
   }
   uint16_t i, j, q, x;
@@ -187,8 +180,7 @@ void theaterChaseRainbowMiddle(uint8_t wait) {
 }
 
 void rainbow(uint8_t wait) {
-  if (val == 0) {
-    on = false;
+  if (inSignal == 0) {
     return;
   }
   uint16_t i, j;
@@ -203,8 +195,7 @@ void rainbow(uint8_t wait) {
 }
 //Theatre-style crawling lights with rainbow effect
 void theaterChaseRainbow(uint8_t wait) {
-  if (val == 0) {
-    on = false;
+  if (inSignal == 0) {
     return;
   }
   uint16_t i, j, q;
@@ -224,8 +215,7 @@ void theaterChaseRainbow(uint8_t wait) {
 }
 
 void splash(uint32_t c, uint8_t wait, uint8_t cnt) {
-  if (val == 0) {
-    on = false;
+  if (inSignal == 0) {
     return;
   }
   for (uint8_t count; count < cnt; count ++) {
@@ -244,28 +234,34 @@ void splash(uint32_t c, uint8_t wait, uint8_t cnt) {
 }
 
 void loop() {
-
-  val = digitalRead(inPin);
+  inSignal = digitalRead(inPin);
   //if (true){  // Diego debug
-  if (val == 1){
-    on = true;
+  if (inSignal == 1){
+    lightsOn = true;
     colorWipeInOut(strip.Color(255, 10, 100), 10);
     colorWipeInOut(strip.Color(100, 0, 255), 10);
     colorWipeInOut(strip.Color(0, 150, 255), 10);
     colorWipe(strip.Color(255, 10, 100), 10);
     colorWipe(strip.Color(100, 0, 255), 10);
     colorWipe(strip.Color(0, 150, 255), 10);
-    rainbowCycle(1);
-    theaterChase(strip.Color(255, 0, 0), 100, 20); // Red
-    theaterChase(strip.Color(0, 0, 255), 100, 20); // Blue
-    theaterChase(strip.Color(0, 255, 0), 100, 20); // Green
-    theaterChaseRainbowMiddle(100);
-    theaterChaseRainbow(100);
+    inSignal = digitalRead(inPin);
     splash(strip.Color(255, 255, 200), 100, 10);
+    inSignal = digitalRead(inPin);
+    rainbowCycle(1);
+    inSignal = digitalRead(inPin);
+    theaterChase(strip.Color(255, 0, 0), 100, 20); // Red
+    inSignal = digitalRead(inPin);
+    theaterChase(strip.Color(0, 0, 255), 100, 20); // Blue
+    inSignal = digitalRead(inPin);
+    theaterChase(strip.Color(0, 255, 0), 100, 20); // Green
+    inSignal = digitalRead(inPin);
+    theaterChaseRainbowMiddle(100);
+    inSignal = digitalRead(inPin);
+    theaterChaseRainbow(100);
+    inSignal = digitalRead(inPin);
     rainbow(1);
-
   }
-  if (val == 0 && on == true) {
+  if (inSignal == 0 && lightsOn == true) {
     lightsOff();
   }
 }
