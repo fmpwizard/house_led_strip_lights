@@ -12,10 +12,10 @@
 // Read pin from moteino
 int inPin = 9;   // pushbutton connected to digital pin 7
 int inSignal = 0;     // variable to store the read value
-//int val = 1;     // variable to store the read value //Diego debug on uno
+uint32_t numOfLeds = 150;
 //======================================
 
-boolean lightsOn = false; //Diego
+boolean lightsOn = false;
 
 //======================================
 
@@ -26,7 +26,7 @@ boolean lightsOn = false; //Diego
 //   NEO_KHZ400  400 KHz (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
 //   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
 //   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(150, PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(numOfLeds, PIN, NEO_GRB + NEO_KHZ800);
 
 // IMPORTANT: To reduce NeoPixel burnout risk, add 1000 uF capacitor across
 // pixel power leads, add 300 - 500 Ohm resistor on first pixel's data input
@@ -51,7 +51,7 @@ void setup() {
 
 void lightsOff(){
   uint16_t x;
-  for(x=0; x < strip.numPixels(); x++){
+  for(x=0; x < numOfLeds; x++){
     strip.setPixelColor(x, strip.Color(0, 0, 0));
   }
   strip.show();
@@ -59,15 +59,15 @@ void lightsOff(){
   delay(2000);
 }
 
-void checkPinIn(uint16_t round) {
+boolean checkPinIn(uint16_t round) {
   if (round % 10 == 0) {
     uint8_t val = digitalRead(inPin);
-    if (val == 0 && lightsOn == true){
-    //if (false && on == true){ //Diego debug
+    if (val == 0){
       lightsOff();
-      return;
+      return true;
     }
   }
+  return false;
 }
 
 // Fill the dots one after the other with a color from corners to the middle
@@ -75,12 +75,14 @@ void colorWipe(uint32_t c, uint8_t wait) {
   if (inSignal == 0) {
     return;
   }
-  for(uint16_t s=0; s < (strip.numPixels()/2) + 1; s++) {
+  for(uint16_t s=0; s < (numOfLeds/2) + 1; s++) {
     strip.setPixelColor(s, c);
-    strip.setPixelColor(strip.numPixels() - s, c);
+    strip.setPixelColor(numOfLeds - s, c);
     strip.show();
     delay(wait);
-    checkPinIn(s);
+    if (checkPinIn(s)) {
+      return;
+    }
   }
 }
 
@@ -89,12 +91,14 @@ void colorWipeInOut(uint32_t c, uint8_t wait) {
   if (inSignal == 0) {
     return;
   }
-  for(uint16_t s=strip.numPixels()/2; s >0 ; s--) {
+  for(uint16_t s=numOfLeds/2; s >0 ; s--) {
     strip.setPixelColor(s, c);
-    strip.setPixelColor(strip.numPixels() - s, c);
+    strip.setPixelColor(numOfLeds - s, c);
     strip.show();
     delay(wait);
-    checkPinIn(s);
+    if (checkPinIn(s)) {
+      return;
+    }
   }
 }
 
@@ -122,11 +126,13 @@ void rainbowCycle(uint8_t wait) {
   uint16_t i, j;
 
   for(j=0; j<256*5; j++) { // 5 cycles of all colors on wheel
-    for(i=0; i< strip.numPixels(); i++) {
-      strip.setPixelColor(i, Wheel(((i * 256 / strip.numPixels()) + j) & 255));
+    for(i=0; i< numOfLeds; i++) {
+      strip.setPixelColor(i, Wheel(((i * 256 / numOfLeds) + j) & 255));
     }
     strip.show();
-    checkPinIn(j);
+    if (checkPinIn(j)) {
+      return;
+    }
     delay(wait);
   }
 }
@@ -138,13 +144,13 @@ void theaterChase(uint32_t c, uint16_t wait, uint8_t cycles) {
   }
   for (int j=0; j<cycles; j++) {  //do N cycles of chasing
     for (int q=0; q < 3; q++) {
-      for (uint16_t i=0; i < strip.numPixels(); i=i+3) {
+      for (uint16_t i=0; i < numOfLeds; i=i+3) {
         strip.setPixelColor(i+q, c);    //turn every third pixel on
       }
       strip.show();
       checkPinIn(j);
       delay(wait);
-      for (uint16_t i=0; i < strip.numPixels(); i=i+3) {
+      for (uint16_t i=0; i < numOfLeds; i=i+3) {
         strip.setPixelColor(i+q, 0);        //turn every third pixel off
       }
     }
@@ -154,25 +160,28 @@ void theaterChase(uint32_t c, uint16_t wait, uint8_t cycles) {
 
 //Theatre-style crawling lights with rainbow effect from corners to middle
 void theaterChaseRainbowMiddle(uint8_t wait) {
+  fin:
   if (inSignal == 0) {
     return;
   }
   uint16_t i, j, q, x;
   for (j=0; j < 256; j=j+30) {     // cycle colors in the wheel, skipping every 30
     for (q=0; q < 3; q++) {
-      for (i=0; i < strip.numPixels() /2; i=i+3) {
+      for (i=0; i < numOfLeds /2; i=i+3) {
         strip.setPixelColor(i+q, Wheel( (i+j) % 255));    //turn every third pixel on
       }
-      for (x=strip.numPixels(); x > strip.numPixels() /2; x=x-3) {
+      for (x=numOfLeds; x > numOfLeds /2; x=x-3) {
         strip.setPixelColor(x-q, Wheel( (x-j) % 255));    //turn every third pixel on
       }
       strip.show();
-      checkPinIn(j);
+      if (checkPinIn(j)) {
+        goto fin;
+      }
       delay(wait);
-      for (i=0; i < strip.numPixels() / 2; i=i+3) {
+      for (i=0; i < numOfLeds / 2; i=i+3) {
         strip.setPixelColor(i+q, 0);        //turn every third pixel off
       }
-      for (i=strip.numPixels(); i > strip.numPixels() / 2; i=i-3) {
+      for (i=numOfLeds; i > numOfLeds / 2; i=i-3) {
         strip.setPixelColor(i-q, 0);        //turn every third pixel off
       }
     }
@@ -185,29 +194,34 @@ void rainbow(uint8_t wait) {
   }
   uint16_t i, j;
   for(j=0; j<256; j++) {
-    for(i=0; i<strip.numPixels(); i++) {
+    for(i=0; i<numOfLeds; i++) {
       strip.setPixelColor(i, Wheel((i+j) & 255));
     }
     strip.show();
-    checkPinIn(j);
+    if (checkPinIn(j)) {
+      return;
+    }
     delay(wait);
   }
 }
 //Theatre-style crawling lights with rainbow effect
 void theaterChaseRainbow(uint8_t wait) {
+  fin:
   if (inSignal == 0) {
     return;
   }
   uint16_t i, j, q;
   for (j=0; j < 256; j=j+20) {     // cycle all 256 colors in the wheel
     for (q=0; q < 3; q++) {
-      for (i=0; i < strip.numPixels(); i=i+3) {
+      for (i=0; i < numOfLeds; i=i+3) {
         strip.setPixelColor(i+q, Wheel( (i+j) % 255));    //turn every third pixel on
       }
       strip.show();
-      checkPinIn(j);
+      if (checkPinIn(j)) {
+        goto fin;
+      }
       delay(wait);
-      for (i=0; i < strip.numPixels(); i=i+3) {
+      for (i=0; i < numOfLeds; i=i+3) {
         strip.setPixelColor(i+q, 0);        //turn every third pixel off
       }
     }
@@ -219,13 +233,15 @@ void splash(uint32_t c, uint8_t wait, uint8_t cnt) {
     return;
   }
   for (uint8_t count; count < cnt; count ++) {
-    for (uint16_t x = 0; x < strip.numPixels(); x ++) {
+    for (uint16_t x = 0; x < numOfLeds; x ++) {
       strip.setPixelColor(x, c);
     }
     strip.show();
-    checkPinIn(10);
+    if (checkPinIn(10)) {
+      return;
+    }
     delay(wait);
-    for (uint16_t x = 0; x < strip.numPixels(); x++) {
+    for (uint16_t x = 0; x < numOfLeds; x++) {
       strip.setPixelColor(x, 0);
     }
     strip.show();
@@ -233,48 +249,95 @@ void splash(uint32_t c, uint8_t wait, uint8_t cnt) {
   }
 }
 
+// walk
+void colorWalk(uint32_t c, uint8_t wait) {
+  if (inSignal == 0) {
+    return;
+  }
+  for(uint16_t s=0; s < numOfLeds; s = s + 5) {
+    for(uint16_t w=s; w < s + 5; w++) {
+      strip.setPixelColor(w, c);
+    }
+    strip.show();
+    for(uint16_t x=s; x < s + 5; x++) {
+      strip.setPixelColor(x, strip.Color(0, 0, 0));
+    }
+    strip.show();
+    delay(wait);
+    if (checkPinIn(s)) {
+      return;
+    }
+  }
+}
+
+void colorReverseWalk(uint32_t c, uint8_t wait) {
+  if (inSignal == 0) {
+    return;
+  }
+  for(uint16_t s=numOfLeds; s >= 0 && s <= numOfLeds; s = s - 5) {
+    for(uint16_t w=s; w > s - 5; w--) {
+      strip.setPixelColor(w, c);
+    }
+    strip.show();
+    for(uint16_t x=s; x > s - 5; x--) {
+      strip.setPixelColor(x, strip.Color(0, 0, 0));
+    }
+    strip.show();
+    delay(wait);
+    if (checkPinIn(s)) {
+      return;
+    }
+  }
+}
+
+
+
 void loop() {
   inSignal = digitalRead(inPin);
-  //if (true){  // Diego debug
   if (inSignal == 1){
     lightsOn = true;
-    colorWipeInOut(strip.Color(255, 10, 100), 10);
-    colorWipeInOut(strip.Color(100, 0, 255), 10);
-    colorWipeInOut(strip.Color(0, 150, 255), 10);
-    colorWipe(strip.Color(255, 10, 100), 10);
-    colorWipe(strip.Color(100, 0, 255), 10);
-    colorWipe(strip.Color(0, 150, 255), 10);
+    colorWalk(Wheel(100) , 100);
     inSignal = digitalRead(inPin);
-    splash(strip.Color(255, 255, 200), 100, 10);
+    colorReverseWalk(Wheel(100) , 100);
+    inSignal = digitalRead(inPin);
+    colorWalk(Wheel(40) , 100);
+    inSignal = digitalRead(inPin);
+    colorReverseWalk(Wheel(40) , 100);
+    inSignal = digitalRead(inPin);
+    colorWalk(Wheel(240) , 100);
+    inSignal = digitalRead(inPin);
+    colorReverseWalk(Wheel(240) , 100);
+    inSignal = digitalRead(inPin);
+    colorWipeInOut(strip.Color(255, 10, 100), 30);
+    inSignal = digitalRead(inPin);
+    colorWipeInOut(strip.Color(100, 0, 255), 30);
+    inSignal = digitalRead(inPin);
+    colorWipeInOut(strip.Color(0, 150, 255), 30);
+    inSignal = digitalRead(inPin);
+    colorWipe(strip.Color(255, 10, 100), 30);
+    inSignal = digitalRead(inPin);
+    colorWipe(strip.Color(100, 0, 255), 30);
+    inSignal = digitalRead(inPin);
+    colorWipe(strip.Color(0, 150, 255), 30);
     inSignal = digitalRead(inPin);
     rainbowCycle(1);
     inSignal = digitalRead(inPin);
-    theaterChase(strip.Color(255, 0, 0), 100, 20); // Red
+    theaterChaseRainbowMiddle(200);
     inSignal = digitalRead(inPin);
-    theaterChase(strip.Color(0, 0, 255), 100, 20); // Blue
-    inSignal = digitalRead(inPin);
-    theaterChase(strip.Color(0, 255, 0), 100, 20); // Green
-    inSignal = digitalRead(inPin);
-    theaterChaseRainbowMiddle(100);
-    inSignal = digitalRead(inPin);
-    theaterChaseRainbow(100);
+    theaterChaseRainbow(200);
     inSignal = digitalRead(inPin);
     rainbow(1);
   }
-  if (lightsOn == true) {
-    Serial.println("on: ");
-  } else {
-    Serial.println("off: ");
-  }
-
-  if (inSignal == 0) {
-    Serial.println("inSignal is 0 ");
-  } else {
-    Serial.println("inSignal is not 0 ");
-  }
-  if (inSignal == 0) {
-    Serial.println("doing off: ");
+  if (inSignal == 0 && lightsOn == true) {
     lightsOff();
   }
   delay(2000);
 }
+
+/*theaterChase(strip.Color(255, 0, 0), 100, 20); // Red
+inSignal = digitalRead(inPin);
+theaterChase(strip.Color(0, 0, 255), 100, 20); // Blue
+inSignal = digitalRead(inPin);
+theaterChase(strip.Color(0, 255, 0), 100, 20); // Green
+inSignal = digitalRead(inPin);
+*/
